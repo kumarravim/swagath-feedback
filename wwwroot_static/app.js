@@ -1,0 +1,867 @@
+// ============================================================================
+// SWAGATH CUSTOMER FEEDBACK APPLICATION
+// Main Application Logic
+// ============================================================================
+
+// Configuration
+const CONFIG = {
+    ADMIN_USERNAME: 'supreme',
+    ADMIN_PASSWORD: 'lakshmi',
+    CONTACT_EMAIL: 'contact@swagathhomefoods.com',
+    LOCAL_STORAGE_KEYS: {
+        FEEDBACK: 'swagath_feedback',
+        ADMIN_LOGIN: 'swagath_admin_login',
+        ADMIN_LOGIN_TIME: 'swagath_admin_login_time',
+        EMAIL_SETTINGS: 'swagath_email_settings'
+    },
+    SESSION_TIMEOUT: 30 * 60 * 1000, // 30 minutes
+    MAX_PHOTOS: 5,
+    MAX_COMMENT_LENGTH: 500
+};
+
+// Category Data Structure
+const CATEGORIES = {
+    'Fruits & Vegetables': [
+        'Fresh Fruits',
+        'Leafy Greens',
+        'Root Vegetables',
+        'Seasonal Produce'
+    ],
+    'Beverages': [
+        'Software Drinks',
+        'Lassi',
+        'Beverages Masala',
+        'Juices',
+        'Teas'
+    ],
+    'Pantry': [
+        'Oils & Spices',
+        'Grains',
+        'Canned Items',
+        'Condiments',
+        'Sauces'
+    ],
+    'Flours': [
+        'Wheat Flour',
+        'Gram Flour',
+        'Rice Flour',
+        'Millet Flour',
+        'Specialty Flours'
+    ],
+    'Meal Kits': [
+        'Sambar Mix',
+        'Rasam Mix',
+        'Curry Mixes',
+        'Dal Mixes'
+    ],
+    'Dairy & Eggs': [
+        'Milk',
+        'Yogurt',
+        'Cheese',
+        'Eggs',
+        'Paneer'
+    ],
+    'Frozen': [
+        'Frozen Vegetables',
+        'Frozen Prepared Foods',
+        'Ice Cream',
+        'Frozen Breads'
+    ],
+    'Rice & Noodles': [
+        'Basmati Rice',
+        'White Rice',
+        'Brown Rice',
+        'Noodles',
+        'Pasta'
+    ],
+    'Pulses': [
+        'Lentils',
+        'Chickpeas',
+        'Kidney Beans',
+        'Split Peas'
+    ],
+    'Health & Beauty': [
+        'Skincare',
+        'Hair Care',
+        'Supplements',
+        'Ayurvedic Products'
+    ],
+    'Household': [
+        'Cleaning Supplies',
+        'Paper Products',
+        'Storage Items',
+        'Utensils'
+    ],
+    'Pooja Items': [
+        'Incense',
+        'Oil Lamps',
+        'Flowers & Leaves',
+        'Religious Items'
+    ],
+    'Dals': [
+        'Toor Dal',
+        'Urad Dal',
+        'Moong Dal',
+        'Masoor Dal',
+        'Mixed Dals'
+    ],
+    'Snacks': [
+        'Savory Snacks',
+        'Namkeen',
+        'Chikhalwali',
+        'Chips & Crisps'
+    ],
+    'Festival': [
+        'Diwali Items',
+        'Holi Colors',
+        'Festival Decorations',
+        'Special Sweets'
+    ],
+    'Homestyle Food': [
+        'Ready to Cook',
+        'Prepared Dishes',
+        'Traditional Foods',
+        'Sweets'
+    ]
+};
+
+// ============================================================================
+// APPLICATION STATE
+// ============================================================================
+const AppState = {
+    isAdminLoggedIn: false,
+    currentFilter: {
+        startDate: null,
+        endDate: null
+    },
+    photos: [],
+    allFeedback: [],
+
+    init() {
+        this.loadAdminSession();
+        this.loadFeedback();
+    },
+
+    loadAdminSession() {
+        const loginTime = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEYS.ADMIN_LOGIN_TIME);
+        if (loginTime) {
+            const elapsed = Date.now() - parseInt(loginTime);
+            if (elapsed < CONFIG.SESSION_TIMEOUT) {
+                this.isAdminLoggedIn = true;
+            } else {
+                this.logoutAdmin();
+            }
+        }
+    },
+
+    setAdminLogin() {
+        this.isAdminLoggedIn = true;
+        localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.ADMIN_LOGIN, 'true');
+        localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.ADMIN_LOGIN_TIME, Date.now().toString());
+    },
+
+    logoutAdmin() {
+        this.isAdminLoggedIn = false;
+        localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEYS.ADMIN_LOGIN);
+        localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEYS.ADMIN_LOGIN_TIME);
+    },
+
+    loadFeedback() {
+        const stored = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEYS.FEEDBACK);
+        this.allFeedback = stored ? JSON.parse(stored) : [];
+    },
+
+    addFeedback(feedback) {
+        feedback.id = Date.now().toString();
+        feedback.timestamp = new Date().toISOString();
+        this.allFeedback.push(feedback);
+        this.saveFeedback();
+        return feedback;
+    },
+
+    saveFeedback() {
+        localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.FEEDBACK, JSON.stringify(this.allFeedback));
+    },
+
+    getFilteredFeedback() {
+        let filtered = this.allFeedback;
+
+        if (this.currentFilter.startDate) {
+            const startDate = new Date(this.currentFilter.startDate);
+            filtered = filtered.filter(f => new Date(f.timestamp) >= startDate);
+        }
+
+        if (this.currentFilter.endDate) {
+            const endDate = new Date(this.currentFilter.endDate);
+            endDate.setHours(23, 59, 59, 999);
+            filtered = filtered.filter(f => new Date(f.timestamp) <= endDate);
+        }
+
+        return filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    }
+};
+
+// ============================================================================
+// DOM ELEMENTS
+// ============================================================================
+let Elements = {};
+
+function initializeDOM() {
+    Elements = {
+        app: document.getElementById('app'),
+        tabBtns: document.querySelectorAll('.tab-btn'),
+        tabContents: document.querySelectorAll('.tab-content'),
+        adminTabBtn: document.getElementById('admin-tab-btn'),
+        userIndicator: document.getElementById('user-indicator'),
+        logoutBtn: document.getElementById('logout-btn'),
+        categorySelect: document.getElementById('category'),
+        subcategorySelect: document.getElementById('subcategory'),
+        productNameInput: document.getElementById('product-name'),
+        commentInput: document.getElementById('comment'),
+        charCount: document.getElementById('char-count'),
+        charCounter: document.querySelector('.char-counter'),
+        photoInput: document.getElementById('photo-input'),
+        uploadBtn: document.getElementById('upload-btn'),
+        photoPreview: document.getElementById('photo-preview'),
+        feedbackForm: document.getElementById('feedback-form-element'),
+        successMessage: document.getElementById('success-message'),
+        submitAnotherBtn: document.getElementById('submit-another-btn'),
+        loginForm: document.getElementById('login-form'),
+        adminUsernameInput: document.getElementById('admin-username'),
+        adminPasswordInput: document.getElementById('admin-password'),
+        adminDashboard: document.getElementById('admin-dashboard'),
+        filterStartDate: document.getElementById('filter-start-date'),
+        filterEndDate: document.getElementById('filter-end-date'),
+        applyFilterBtn: document.getElementById('apply-filter-btn'),
+        clearFilterBtn: document.getElementById('clear-filter-btn'),
+        feedbackList: document.getElementById('feedback-list'),
+        feedbackCount: document.getElementById('feedback-count'),
+        qrCodeSection: document.getElementById('qr-code-section'),
+        qrCanvas: document.getElementById('qr-canvas'),
+        downloadQrBtn: document.getElementById('download-qr-btn'),
+        copyUrlBtn: document.getElementById('copy-url-btn'),
+        feedbackUrl: document.getElementById('feedback-url'),
+        settingsSection: document.getElementById('settings-section'),
+        settingsForm: document.getElementById('settings-form'),
+        emailNotificationsToggle: document.getElementById('email-notifications-toggle'),
+        emailInputSection: document.getElementById('email-input-section'),
+        notificationEmailInput: document.getElementById('notification-email'),
+        photoModal: document.getElementById('photo-modal'),
+        photoModalImage: document.getElementById('photo-modal-image'),
+        modalCloseBtn: document.getElementById('modal-close-btn')
+    };
+}
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded - Initializing app...');
+    initializeDOM();
+    console.log('DOM Elements initialized:', Elements);
+    console.log('Admin tab button:', Elements.adminTabBtn);
+    AppState.init();
+    initializeCategories();
+    setupEventListeners();
+    updateUIBasedOnAuth();
+    setFeedbackUrl();
+    console.log('App initialization complete!');
+});
+
+function initializeCategories() {
+    // Populate main categories
+    Object.keys(CATEGORIES).forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        Elements.categorySelect.appendChild(option);
+    });
+
+    // Set initial subcategories
+    updateSubcategories();
+}
+
+function updateSubcategories() {
+    const selectedCategory = Elements.categorySelect.value;
+    Elements.subcategorySelect.innerHTML = '<option value="">Select a subcategory...</option>';
+
+    if (selectedCategory && CATEGORIES[selectedCategory]) {
+        CATEGORIES[selectedCategory].forEach(subcategory => {
+            const option = document.createElement('option');
+            option.value = subcategory;
+            option.textContent = subcategory;
+            Elements.subcategorySelect.appendChild(option);
+        });
+    }
+}
+
+function setupEventListeners() {
+    // Tab Navigation
+    Elements.tabBtns.forEach(btn => {
+        btn.addEventListener('click', handleTabClick);
+    });
+
+    // Form Events
+    Elements.categorySelect.addEventListener('change', updateSubcategories);
+    Elements.commentInput.addEventListener('input', updateCharCounter);
+    Elements.uploadBtn.addEventListener('click', triggerFileInput);
+    Elements.photoInput.addEventListener('change', handlePhotoSelection);
+    Elements.feedbackForm.addEventListener('submit', handleFeedbackSubmit);
+    Elements.feedbackForm.addEventListener('reset', resetFormState);
+
+    // Success Message
+    Elements.submitAnotherBtn.addEventListener('click', handleSubmitAnother);
+
+    // Login
+    Elements.loginForm.addEventListener('submit', handleLogin);
+    Elements.logoutBtn.addEventListener('click', handleLogout);
+
+    // Filtering
+    Elements.applyFilterBtn.addEventListener('click', applyFilters);
+    Elements.clearFilterBtn.addEventListener('click', clearFilters);
+
+    // QR Code
+    Elements.downloadQrBtn.addEventListener('click', downloadQRCode);
+    Elements.copyUrlBtn.addEventListener('click', copyFeedbackUrl);
+
+    // Settings
+    Elements.emailNotificationsToggle.addEventListener('change', toggleEmailInput);
+    Elements.settingsForm.addEventListener('submit', handleSettingsSave);
+
+    // Photo Modal
+    Elements.photoModal.addEventListener('click', closePhotoModal);
+    Elements.modalCloseBtn.addEventListener('click', closePhotoModal);
+}
+
+function updateUIBasedOnAuth() {
+    if (AppState.isAdminLoggedIn) {
+        Elements.userIndicator.style.display = 'inline-flex';
+        Elements.logoutBtn.style.display = 'inline-flex';
+        loadAdminSettings();
+        generateQRCode();
+    } else {
+        Elements.userIndicator.style.display = 'none';
+        Elements.logoutBtn.style.display = 'none';
+    }
+}
+
+// ============================================================================
+// TAB NAVIGATION
+// ============================================================================
+function handleTabClick(e) {
+    const tabName = e.currentTarget.dataset.tab;
+
+    // Update active tab button
+    Elements.tabBtns.forEach(btn => btn.classList.remove('active'));
+    e.currentTarget.classList.add('active');
+
+    // Update displayed content
+    Elements.tabContents.forEach(content => content.classList.remove('active'));
+
+    const activeTab = document.getElementById(tabName);
+    if (activeTab) {
+        activeTab.classList.add('active');
+    }
+
+    // Handle admin tabs
+    if (AppState.isAdminLoggedIn) {
+        if (tabName === 'admin-login') {
+            displayAdminDashboard();
+        } else if (tabName === 'qr-code') {
+            generateQRCode();
+        }
+    }
+}
+
+// ============================================================================
+// FORM HANDLING
+// ============================================================================
+function updateCharCounter() {
+    const count = Elements.commentInput.value.length;
+    Elements.charCount.textContent = count;
+
+    // Update counter styling
+    if (count >= 500) {
+        Elements.charCounter.classList.add('danger');
+        Elements.charCounter.classList.remove('warning');
+    } else if (count >= 450) {
+        Elements.charCounter.classList.add('warning');
+        Elements.charCounter.classList.remove('danger');
+    } else {
+        Elements.charCounter.classList.remove('warning', 'danger');
+    }
+}
+
+function triggerFileInput() {
+    Elements.photoInput.click();
+}
+
+function handlePhotoSelection(e) {
+    const files = Array.from(e.target.files);
+    const remainingSlots = CONFIG.MAX_PHOTOS - AppState.photos.length;
+
+    if (files.length > remainingSlots) {
+        showError('photo-error', `You can only upload ${CONFIG.MAX_PHOTOS} photos total. ${remainingSlots} slots remaining.`);
+        return;
+    }
+
+    clearError('photo-error');
+
+    files.forEach(file => {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                AppState.photos.push({
+                    data: event.target.result,
+                    name: file.name
+                });
+                renderPhotoPreviews();
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Reset file input
+    Elements.photoInput.value = '';
+}
+
+function renderPhotoPreviews() {
+    Elements.photoPreview.innerHTML = '';
+
+    AppState.photos.forEach((photo, index) => {
+        const photoItem = document.createElement('div');
+        photoItem.className = 'photo-item';
+        photoItem.innerHTML = `
+            <img src="${photo.data}" alt="Photo ${index + 1}">
+            <button type="button" class="photo-remove" data-index="${index}">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+
+        photoItem.querySelector('img').addEventListener('click', () => showPhotoModal(photo.data));
+        photoItem.querySelector('.photo-remove').addEventListener('click', (e) => {
+            e.preventDefault();
+            removePhoto(index);
+        });
+
+        Elements.photoPreview.appendChild(photoItem);
+    });
+
+    // Update remaining slots indicator
+    const remaining = CONFIG.MAX_PHOTOS - AppState.photos.length;
+    if (remaining < CONFIG.MAX_PHOTOS) {
+        const uploadBtn = Elements.uploadBtn;
+        if (remaining === 0) {
+            uploadBtn.textContent = '📸 Max Photos Reached';
+            uploadBtn.disabled = true;
+        } else {
+            uploadBtn.textContent = `📸 Add Photos (${remaining} remaining)`;
+            uploadBtn.disabled = false;
+        }
+    }
+}
+
+function removePhoto(index) {
+    AppState.photos.splice(index, 1);
+    renderPhotoPreviews();
+}
+
+function showPhotoModal(photoData) {
+    Elements.photoModalImage.src = photoData;
+    Elements.photoModal.style.display = 'flex';
+}
+
+function closePhotoModal(e) {
+    if (e.target === Elements.photoModal || e.target === Elements.modalCloseBtn) {
+        Elements.photoModal.style.display = 'none';
+    }
+}
+
+async function handleFeedbackSubmit(e) {
+    e.preventDefault();
+
+    // Validate form
+    if (!validateFeedbackForm()) {
+        return;
+    }
+
+    // Create feedback object
+    const feedback = {
+        category: Elements.categorySelect.value,
+        subcategory: Elements.subcategorySelect.value,
+        productName: Elements.productNameInput.value,
+        comment: Elements.commentInput.value,
+        photos: AppState.photos,
+        submittedBy: 'customer'
+    };
+
+    // Add to state
+    AppState.addFeedback(feedback);
+
+    // Send email notification if enabled
+    const settings = getEmailSettings();
+    if (settings.enabled && settings.email) {
+        await sendEmailNotification(feedback, settings.email);
+    }
+
+    // Show success message
+    showSuccessMessage();
+    resetFormState();
+}
+
+function validateFeedbackForm() {
+    const errors = {
+        category: !Elements.categorySelect.value,
+        subcategory: !Elements.subcategorySelect.value,
+        'product-name': !Elements.productNameInput.value.trim(),
+        comment: !Elements.commentInput.value.trim() || Elements.commentInput.value.length > 500
+    };
+
+    let isValid = true;
+    Object.keys(errors).forEach(field => {
+        if (errors[field]) {
+            showError(`${field}-error`, `Please fill in the ${field.replace('-', ' ')} field correctly.`);
+            document.getElementById(field).classList.add('error');
+            isValid = false;
+        } else {
+            clearError(`${field}-error`);
+            document.getElementById(field).classList.remove('error');
+        }
+    });
+
+    return isValid;
+}
+
+function showError(elementId, message) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = message;
+        element.classList.add('show');
+    }
+}
+
+function clearError(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = '';
+        element.classList.remove('show');
+    }
+}
+
+function resetFormState() {
+    Elements.feedbackForm.reset();
+    AppState.photos = [];
+    Elements.photoPreview.innerHTML = '';
+    Elements.charCount.textContent = '0';
+    Elements.charCounter.classList.remove('warning', 'danger');
+    Elements.uploadBtn.textContent = '📸 Add Photos';
+    Elements.uploadBtn.disabled = false;
+    clearAllErrors();
+}
+
+function clearAllErrors() {
+    document.querySelectorAll('.error-message').forEach(el => {
+        el.classList.remove('show');
+        el.textContent = '';
+    });
+    document.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(el => {
+        el.classList.remove('error');
+    });
+}
+
+function showSuccessMessage() {
+    Elements.successMessage.style.display = 'flex';
+}
+
+function handleSubmitAnother() {
+    Elements.successMessage.style.display = 'none';
+    resetFormState();
+    // Switch to feedback form tab
+    const feedbackBtn = Array.from(Elements.tabBtns).find(btn => btn.dataset.tab === 'feedback-form');
+    if (feedbackBtn) feedbackBtn.click();
+    Elements.productNameInput.focus();
+}
+
+// ============================================================================
+// ADMIN LOGIN & AUTHENTICATION
+// ============================================================================
+async function handleLogin(e) {
+    e.preventDefault();
+
+    const username = Elements.adminUsernameInput.value;
+    const password = Elements.adminPasswordInput.value;
+
+    if (username === CONFIG.ADMIN_USERNAME && password === CONFIG.ADMIN_PASSWORD) {
+        AppState.setAdminLogin();
+        updateUIBasedOnAuth();
+        Elements.loginForm.reset();
+        displayAdminDashboard();
+        
+        // Switch to dashboard tab
+        const tabBtn = document.querySelector('[data-tab="admin-login"]');
+        if (tabBtn) tabBtn.click();
+    } else {
+        showError('password-error', 'Invalid credentials. Please try again or contact ' + CONFIG.CONTACT_EMAIL);
+    }
+}
+
+function handleLogout() {
+    AppState.logoutAdmin();
+    updateUIBasedOnAuth();
+    
+    // Switch to feedback form
+    const feedbackBtn = Array.from(Elements.tabBtns).find(btn => btn.dataset.tab === 'feedback-form');
+    if (feedbackBtn) feedbackBtn.click();
+}
+
+// ============================================================================
+// ADMIN DASHBOARD
+// ============================================================================
+function displayAdminDashboard() {
+    Elements.adminDashboard.style.display = 'block';
+    renderFeedbackList(AppState.allFeedback);
+}
+
+function renderFeedbackList(feedbackList) {
+    Elements.feedbackList.innerHTML = '';
+    Elements.feedbackCount.textContent = feedbackList.length;
+
+    if (feedbackList.length === 0) {
+        Elements.feedbackList.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>No feedback submissions yet.</p>
+            </div>
+        `;
+        return;
+    }
+
+    feedbackList.forEach(feedback => {
+        const card = createFeedbackCard(feedback);
+        Elements.feedbackList.appendChild(card);
+    });
+}
+
+function createFeedbackCard(feedback) {
+    const date = new Date(feedback.timestamp);
+    const formattedDate = date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const card = document.createElement('div');
+    card.className = 'feedback-card';
+
+    let photosHTML = '';
+    if (feedback.photos && feedback.photos.length > 0) {
+        photosHTML = `
+            <div class="feedback-photos">
+                ${feedback.photos.map((photo, idx) => `
+                    <div class="feedback-photo" onclick="showPhotoModal('${photo.data}')">
+                        <img src="${photo.data}" alt="Photo ${idx + 1}">
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    card.innerHTML = `
+        <div class="feedback-header">
+            <div>
+                <div class="feedback-title">${feedback.productName}</div>
+                <div class="feedback-timestamp">${formattedDate}</div>
+            </div>
+            <div class="feedback-category">
+                <span class="badge">${feedback.category}</span>
+                <span class="badge">${feedback.subcategory}</span>
+            </div>
+        </div>
+
+        <div class="feedback-details">
+            <div class="detail-row">
+                <div class="detail-label">Feedback:</div>
+                <div class="detail-value">${feedback.comment}</div>
+            </div>
+        </div>
+
+        ${photosHTML}
+    `;
+
+    return card;
+}
+
+function applyFilters() {
+    const startDate = Elements.filterStartDate.value;
+    const endDate = Elements.filterEndDate.value;
+
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+        alert('Start date cannot be after end date');
+        return;
+    }
+
+    AppState.currentFilter.startDate = startDate;
+    AppState.currentFilter.endDate = endDate;
+
+    const filtered = AppState.getFilteredFeedback();
+    renderFeedbackList(filtered);
+}
+
+function clearFilters() {
+    AppState.currentFilter.startDate = null;
+    AppState.currentFilter.endDate = null;
+    Elements.filterStartDate.value = '';
+    Elements.filterEndDate.value = '';
+    renderFeedbackList(AppState.allFeedback);
+}
+
+// ============================================================================
+// QR CODE GENERATION
+// ============================================================================
+function setFeedbackUrl() {
+    const url = window.location.origin + window.location.pathname;
+    Elements.feedbackUrl.textContent = url;
+}
+
+function generateQRCode() {
+    const url = window.location.origin + window.location.pathname;
+    
+    // Clear existing canvas
+    Elements.qrCanvas.innerHTML = '';
+    
+    // Generate new QR code
+    new QRCode(Elements.qrCanvas, {
+        text: url,
+        width: 256,
+        height: 256,
+        colorDark: '#000000',
+        colorLight: '#ffffff'
+    });
+}
+
+function downloadQRCode() {
+    const canvas = Elements.qrCanvas.querySelector('canvas');
+    if (!canvas) {
+        alert('QR Code not generated yet');
+        return;
+    }
+
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    link.download = 'swagath-feedback-qrcode.png';
+    link.click();
+}
+
+function copyFeedbackUrl() {
+    const url = Elements.feedbackUrl.textContent;
+    navigator.clipboard.writeText(url).then(() => {
+        const originalText = Elements.copyUrlBtn.innerHTML;
+        Elements.copyUrlBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        setTimeout(() => {
+            Elements.copyUrlBtn.innerHTML = originalText;
+        }, 2000);
+    }).catch(() => {
+        alert('Failed to copy URL');
+    });
+}
+
+// ============================================================================
+// EMAIL SETTINGS & NOTIFICATIONS
+// ============================================================================
+function toggleEmailInput() {
+    if (Elements.emailNotificationsToggle.checked) {
+        Elements.emailInputSection.style.display = 'flex';
+        Elements.notificationEmailInput.focus();
+    } else {
+        Elements.emailInputSection.style.display = 'none';
+    }
+}
+
+function getEmailSettings() {
+    const stored = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEYS.EMAIL_SETTINGS);
+    return stored ? JSON.parse(stored) : { enabled: false, email: '' };
+}
+
+function saveEmailSettings(enabled, email) {
+    const settings = { enabled, email };
+    localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.EMAIL_SETTINGS, JSON.stringify(settings));
+}
+
+function loadAdminSettings() {
+    const settings = getEmailSettings();
+    Elements.emailNotificationsToggle.checked = settings.enabled;
+    Elements.notificationEmailInput.value = settings.email || '';
+    
+    if (settings.enabled) {
+        Elements.emailInputSection.style.display = 'flex';
+    } else {
+        Elements.emailInputSection.style.display = 'none';
+    }
+}
+
+function handleSettingsSave(e) {
+    e.preventDefault();
+
+    const enabled = Elements.emailNotificationsToggle.checked;
+    const email = Elements.notificationEmailInput.value.trim();
+
+    if (enabled && !validateEmail(email)) {
+        showError('email-error', 'Please enter a valid email address');
+        return;
+    }
+
+    clearError('email-error');
+    saveEmailSettings(enabled, email);
+
+    // Show confirmation
+    alert('Settings saved successfully!');
+}
+
+function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
+
+async function sendEmailNotification(feedback, email) {
+    try {
+        // This will be called when you have an Azure Function backend
+        // For now, it's a placeholder
+        console.log('Email would be sent to:', email);
+        console.log('Feedback:', feedback);
+        
+        // Uncomment when backend is ready:
+        // const response = await fetch('/api/send-notification', {
+        //     method: 'POST',
+        //     headers: { 'Content-Type': 'application/json' },
+        //     body: JSON.stringify({ email, feedback })
+        // });
+        // return response.ok;
+    } catch (error) {
+        console.error('Error sending notification:', error);
+    }
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+function getFormattedDate(date) {
+    return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+function getFormattedTime(date) {
+    return new Date(date).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+// Export for testing (if needed)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { AppState, CONFIG, CATEGORIES };
+}

@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "routes": [
+    {
+      "route": "/*",
+      "serve": "/index.html",
+      "statusCode": 200
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/images/*",
+      "/css/*",
+      "/js/*",
+      "/lib/*",
+      "/*.{css,scss,html,js,svg,png,jpg,jpeg,gif,ico,json,xml,txt}"
+    ]
+  },
+  "auth": {
+    "identityProviders": {
+      "github": {
+        "userDetailsClaim": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+      }
+    }
+  },
+  "mimeTypes": {
+    ".json": "text/json"
+  }
+}

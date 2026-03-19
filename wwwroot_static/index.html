@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swagath Indian Grocery - Customer Feedback</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app" class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="https://swagathstores.com/assets/logo.png" alt="Swagath Indian Grocery Logo" class="logo" onerror="this.style.display='none'">
+                    <h1 class="store-name">Swagath Indian Grocery</h1>
+                    <p class="store-location">Redmond, WA</p>
+                </div>
+                <div class="header-actions">
+                    <span id="user-indicator" class="user-indicator" style="display:none;">
+                        <i class="fas fa-user-circle"></i> Admin
+                    </span>
+                    <button id="logout-btn" class="logout-btn" style="display:none;">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+            <button class="tab-btn active" data-tab="feedback-form">
+                <i class="fas fa-comment-dots"></i>
+                <span class="tab-label">Feedback</span>
+            </button>
+            <button class="tab-btn" data-tab="admin-login" id="admin-tab-btn" style="background-color: #ffcccc; padding: 10px 20px; border: 2px solid red;">
+                🔒 ADMIN
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Feedback Form Tab -->
+            <section id="feedback-form" class="tab-content active">
+                <div class="form-container">
+                    <div class="form-header">
+                        <h2>Share Your Feedback</h2>
+                        <p>Help us improve your shopping experience</p>
+                    </div>
+
+                    <form id="feedback-form-element" class="feedback-form">
+                        <!-- Category Selection -->
+                        <div class="form-section">
+                            <label for="category" class="form-label">
+                                <span class="label-text">Category</span>
+                                <span class="required">*</span>
+                            </label>
+                            <select id="category" class="form-select" required>
+                                <option value="">Select a category...</option>
+                            </select>
+                            <span class="error-message" id="category-error"></span>
+                        </div>
+
+                        <!-- Subcategory Selection -->
+                        <div class="form-section">
+                            <label for="subcategory" class="form-label">
+                                <span class="label-text">Subcategory</span>
+                                <span class="required">*</span>
+                            </label>
+                            <select id="subcategory" class="form-select" required>
+                                <option value="">Select a subcategory...</option>
+                            </select>
+                            <span class="error-message" id="subcategory-error"></span>
+                        </div>
+
+                        <!-- Product Name -->
+                        <div class="form-section">
+                            <label for="product-name" class="form-label">
+                                <span class="label-text">Product Name</span>
+                                <span class="required">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="product-name" 
+                                class="form-input" 
+                                placeholder="Enter product name"
+                                maxlength="100"
+                                required
+                            >
+                            <span class="error-message" id="product-name-error"></span>
+                        </div>
+
+                        <!-- Feedback Comment -->
+                        <div class="form-section">
+                            <label for="comment" class="form-label">
+                                <span class="label-text">Your Feedback</span>
+                                <span class="required">*</span>
+                            </label>
+                            <div class="textarea-container">
+                                <textarea 
+                                    id="comment" 
+                                    class="form-textarea" 
+                                    placeholder="Please share your feedback (max 500 characters)"
+                                    maxlength="500"
+                                    required
+                                ></textarea>
+                                <div class="char-counter">
+                                    <span id="char-count">0</span>/500
+                                </div>
+                            </div>
+                            <span class="error-message" id="comment-error"></span>
+                        </div>
+
+                        <!-- Photo Upload -->
+                        <div class="form-section">
+                            <label class="form-label">
+                                <span class="label-text">Add Photos (Optional)</span>
+                                <span class="subtitle">Up to 5 photos</span>
+                            </label>
+                            <div class="file-input-wrapper">
+                                <input 
+                                    type="file" 
+                                    id="photo-input" 
+                                    accept="image/*" 
+                                    multiple
+                                    style="display:none;"
+                                >
+                                <button type="button" class="btn btn-secondary" id="upload-btn">
+                                    <i class="fas fa-camera"></i> Add Photos
+                                </button>
+                            </div>
+                            <div id="photo-preview" class="photo-preview"></div>
+                            <span class="error-message" id="photo-error"></span>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Submit Feedback
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                <i class="fas fa-redo"></i> Clear Form
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Success Message -->
+                    <div id="success-message" class="success-message" style="display:none;">
+                        <div class="success-content">
+                            <i class="fas fa-check-circle"></i>
+                            <h3>Thank You!</h3>
+                            <p>Your feedback has been submitted successfully.</p>
+                            <button type="button" class="btn btn-primary" id="submit-another-btn">
+                                Submit Another Feedback
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Admin Login Tab -->
+            <section id="admin-login" class="tab-content">
+                <div class="admin-container">
+                    <div class="admin-header">
+                        <h2>Admin Access</h2>
+                        <p>Enter your credentials to access admin features</p>
+                    </div>
+
+                    <form id="login-form" class="login-form">
+                        <div class="form-section">
+                            <label for="admin-username" class="form-label">Username</label>
+                            <input 
+                                type="text" 
+                                id="admin-username" 
+                                class="form-input" 
+                                placeholder="Enter username"
+                                required
+                            >
+                            <span class="error-message" id="username-error"></span>
+                        </div>
+
+                        <div class="form-section">
+                            <label for="admin-password" class="form-label">Password</label>
+                            <input 
+                                type="password" 
+                                id="admin-password" 
+                                class="form-input" 
+                                placeholder="Enter password"
+                                required
+                            >
+                            <span class="error-message" id="password-error"></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                    </form>
+
+                    <div class="login-help">
+                        <p>If you don't have credentials, contact: <strong>contact@swagathhomefoods.com</strong></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Admin Dashboard Tab (visible only when logged in) -->
+            <section id="admin-dashboard" class="tab-content" style="display:none;">
+                <div class="dashboard-container">
+                    <div class="dashboard-header">
+                        <h2>Feedback Dashboard</h2>
+                    </div>
+
+                    <!-- Filter Section -->
+                    <div class="filter-section">
+                        <h3>Filter by Date Range</h3>
+                        <div class="filter-controls">
+                            <div class="filter-input">
+                                <label for="filter-start-date">Start Date</label>
+                                <input type="date" id="filter-start-date" class="form-input">
+                            </div>
+                            <div class="filter-input">
+                                <label for="filter-end-date">End Date</label>
+                                <input type="date" id="filter-end-date" class="form-input">
+                            </div>
+                            <button type="button" class="btn btn-secondary" id="apply-filter-btn">
+                                <i class="fas fa-filter"></i> Apply Filter
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="clear-filter-btn">
+                                <i class="fas fa-times"></i> Clear Filter
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Feedback List -->
+                    <div class="feedback-list-container">
+                        <h3>Submissions (<span id="feedback-count">0</span>)</h3>
+                        <div id="feedback-list" class="feedback-list">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>No feedback submissions yet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- QR Code Tab (visible only when logged in) -->
+            <section id="qr-code-section" class="tab-content" style="display:none;">
+                <div class="qr-container">
+                    <div class="qr-header">
+                        <h2>QR Code for Customer Access</h2>
+                        <p>Print and display this QR code in your store</p>
+                    </div>
+
+                    <div class="qr-content">
+                        <div id="qr-code-display" class="qr-display">
+                            <canvas id="qr-canvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="qr-actions">
+                        <button type="button" class="btn btn-primary" id="download-qr-btn">
+                            <i class="fas fa-download"></i> Download QR Code
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="copy-url-btn">
+                            <i class="fas fa-copy"></i> Copy URL
+                        </button>
+                    </div>
+
+                    <div class="qr-info">
+                        <p><strong>Feedback Form URL:</strong></p>
+                        <code id="feedback-url"></code>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Tab (visible only when logged in) -->
+            <section id="settings-section" class="tab-content" style="display:none;">
+                <div class="settings-container">
+                    <div class="settings-header">
+                        <h2>Admin Settings</h2>
+                    </div>
+
+                    <form id="settings-form" class="settings-form">
+                        <div class="form-section">
+                            <label class="form-label">
+                                <span class="label-text">Email Notifications</span>
+                            </label>
+
+                            <div class="switch-group">
+                                <label class="switch-label">
+                                    <input type="checkbox" id="email-notifications-toggle" class="switch-input">
+                                    <span class="switch-slider"></span>
+                                    <span class="switch-text">Enable email notifications</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-section" id="email-input-section" style="display:none;">
+                            <label for="notification-email" class="form-label">
+                                <span class="label-text">Notification Email Address</span>
+                                <span class="required">*</span>
+                            </label>
+                            <input 
+                                type="email" 
+                                id="notification-email" 
+                                class="form-input" 
+                                placeholder="contact@swagathhomefoods.com"
+                            >
+                            <span class="error-message" id="email-error"></span>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-floppy-disk"></i> Save Settings
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="settings-help">
+                        <p><strong>Note:</strong> Email notifications will be sent when customers submit feedback.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Photo Preview Modal -->
+        <div id="photo-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <button type="button" class="modal-close" id="modal-close-btn">&times;</button>
+                <img id="photo-modal-image" src="" alt="Photo preview" class="modal-image">
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Main Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>
