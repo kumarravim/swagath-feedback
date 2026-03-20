@@ -212,6 +212,9 @@ function initializeDOM() {
         tabBtns: document.querySelectorAll('.tab-btn'),
         tabContents: document.querySelectorAll('.tab-content'),
         adminTabBtn: document.getElementById('admin-tab-btn'),
+        dashboardTabBtn: document.getElementById('dashboard-tab-btn'),
+        qrTabBtn: document.getElementById('qr-tab-btn'),
+        settingsTabBtn: document.getElementById('settings-tab-btn'),
         userIndicator: document.getElementById('user-indicator'),
         logoutBtn: document.getElementById('logout-btn'),
         categorySelect: document.getElementById('category'),
@@ -227,6 +230,9 @@ function initializeDOM() {
         successMessage: document.getElementById('success-message'),
         submitAnotherBtn: document.getElementById('submit-another-btn'),
         loginForm: document.getElementById('login-form'),
+        loginHeaderBtn: document.getElementById('login-header-btn'),
+        loginModal: document.getElementById('login-modal'),
+        loginModalCloseBtn: document.getElementById('login-modal-close-btn'),
         adminUsernameInput: document.getElementById('admin-username'),
         adminPasswordInput: document.getElementById('admin-password'),
         adminDashboard: document.getElementById('admin-dashboard'),
@@ -315,6 +321,9 @@ function setupEventListeners() {
     // Login
     Elements.loginForm.addEventListener('submit', handleLogin);
     Elements.logoutBtn.addEventListener('click', handleLogout);
+    Elements.loginHeaderBtn.addEventListener('click', openLoginModal);
+    Elements.loginModalCloseBtn.addEventListener('click', closeLoginModal);
+    Elements.loginModal.addEventListener('click', closeLoginModalOnBackdrop);
 
     // Filtering
     Elements.applyFilterBtn.addEventListener('click', applyFilters);
@@ -335,13 +344,24 @@ function setupEventListeners() {
 
 function updateUIBasedOnAuth() {
     if (AppState.isAdminLoggedIn) {
+        // Show admin features
         Elements.userIndicator.style.display = 'inline-flex';
         Elements.logoutBtn.style.display = 'inline-flex';
+        Elements.loginHeaderBtn.style.display = 'none';
+        Elements.dashboardTabBtn.style.display = 'inline-block';
+        Elements.qrTabBtn.style.display = 'inline-block';
+        Elements.settingsTabBtn.style.display = 'inline-block';
+        
         loadAdminSettings();
         generateQRCode();
     } else {
+        // Hide admin features
         Elements.userIndicator.style.display = 'none';
         Elements.logoutBtn.style.display = 'none';
+        Elements.loginHeaderBtn.style.display = 'inline-block';
+        Elements.dashboardTabBtn.style.display = 'none';
+        Elements.qrTabBtn.style.display = 'none';
+        Elements.settingsTabBtn.style.display = 'none';
     }
 }
 
@@ -365,9 +385,9 @@ function handleTabClick(e) {
 
     // Handle admin tabs
     if (AppState.isAdminLoggedIn) {
-        if (tabName === 'admin-login') {
+        if (tabName === 'admin-dashboard') {
             displayAdminDashboard();
-        } else if (tabName === 'qr-code') {
+        } else if (tabName === 'qr-code-section') {
             generateQRCode();
         }
     }
@@ -585,6 +605,20 @@ function handleSubmitAnother() {
 // ============================================================================
 // ADMIN LOGIN & AUTHENTICATION
 // ============================================================================
+function openLoginModal() {
+    Elements.loginModal.style.display = 'flex';
+}
+
+function closeLoginModal() {
+    Elements.loginModal.style.display = 'none';
+}
+
+function closeLoginModalOnBackdrop(e) {
+    if (e.target === Elements.loginModal) {
+        closeLoginModal();
+    }
+}
+
 async function handleLogin(e) {
     e.preventDefault();
 
@@ -595,11 +629,13 @@ async function handleLogin(e) {
         AppState.setAdminLogin();
         updateUIBasedOnAuth();
         Elements.loginForm.reset();
-        displayAdminDashboard();
+        closeLoginModal();
         
-        // Switch to dashboard tab
-        const tabBtn = document.querySelector('[data-tab="admin-login"]');
-        if (tabBtn) tabBtn.click();
+        // Auto-switch to dashboard tab after successful login
+        const dashboardBtn = Array.from(Elements.tabBtns).find(btn => btn.dataset.tab === 'admin-dashboard');
+        if (dashboardBtn) {
+            dashboardBtn.click();
+        }
     } else {
         showError('password-error', 'Invalid credentials. Please try again or contact ' + CONFIG.CONTACT_EMAIL);
     }
@@ -618,7 +654,6 @@ function handleLogout() {
 // ADMIN DASHBOARD
 // ============================================================================
 function displayAdminDashboard() {
-    Elements.adminDashboard.style.display = 'block';
     renderFeedbackList(AppState.allFeedback);
 }
 
@@ -728,17 +763,23 @@ function setFeedbackUrl() {
 function generateQRCode() {
     const url = window.location.origin + window.location.pathname;
     
-    // Clear existing canvas
+    // Clear existing QR code
     Elements.qrCanvas.innerHTML = '';
     
-    // Generate new QR code
-    new QRCode(Elements.qrCanvas, {
-        text: url,
-        width: 256,
-        height: 256,
-        colorDark: '#000000',
-        colorLight: '#ffffff'
-    });
+    // Generate new QR code with larger size for better scanning
+    try {
+        new QRCode(Elements.qrCanvas, {
+            text: url,
+            width: 300,
+            height: 300,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    } catch (error) {
+        console.error('Error generating QR code:', error);
+        Elements.qrCanvas.innerHTML = '<p>Error generating QR code. Please refresh the page.</p>';
+    }
 }
 
 function downloadQRCode() {

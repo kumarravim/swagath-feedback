@@ -19,6 +19,9 @@
                     <p class="store-location">Redmond, WA</p>
                 </div>
                 <div class="header-actions">
+                    <button id="login-header-btn" class="login-header-btn">
+                        <i class="fas fa-sign-in-alt"></i> Admin Login
+                    </button>
                     <span id="user-indicator" class="user-indicator" style="display:none;">
                         <i class="fas fa-user-circle"></i> Admin
                     </span>
@@ -35,8 +38,17 @@
                 <i class="fas fa-comment-dots"></i>
                 <span class="tab-label">Feedback</span>
             </button>
-            <button class="tab-btn" data-tab="admin-login" id="admin-tab-btn" style="background-color: #ffcccc; padding: 10px 20px; border: 2px solid red;">
-                🔒 ADMIN
+            <button class="tab-btn" data-tab="admin-dashboard" id="dashboard-tab-btn" style="display:none;">
+                <i class="fas fa-chart-bar"></i>
+                <span class="tab-label">Dashboard</span>
+            </button>
+            <button class="tab-btn" data-tab="qr-code-section" id="qr-tab-btn" style="display:none;">
+                <i class="fas fa-qrcode"></i>
+                <span class="tab-label">QR Code</span>
+            </button>
+            <button class="tab-btn" data-tab="settings-section" id="settings-tab-btn" style="display:none;">
+                <i class="fas fa-cog"></i>
+                <span class="tab-label">Settings</span>
             </button>
         </nav>
 
@@ -160,52 +172,8 @@
                 </div>
             </section>
 
-            <!-- Admin Login Tab -->
-            <section id="admin-login" class="tab-content">
-                <div class="admin-container">
-                    <div class="admin-header">
-                        <h2>Admin Access</h2>
-                        <p>Enter your credentials to access admin features</p>
-                    </div>
-
-                    <form id="login-form" class="login-form">
-                        <div class="form-section">
-                            <label for="admin-username" class="form-label">Username</label>
-                            <input 
-                                type="text" 
-                                id="admin-username" 
-                                class="form-input" 
-                                placeholder="Enter username"
-                                required
-                            >
-                            <span class="error-message" id="username-error"></span>
-                        </div>
-
-                        <div class="form-section">
-                            <label for="admin-password" class="form-label">Password</label>
-                            <input 
-                                type="password" 
-                                id="admin-password" 
-                                class="form-input" 
-                                placeholder="Enter password"
-                                required
-                            >
-                            <span class="error-message" id="password-error"></span>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary btn-full">
-                            <i class="fas fa-sign-in-alt"></i> Login
-                        </button>
-                    </form>
-
-                    <div class="login-help">
-                        <p>If you don't have credentials, contact: <strong>contact@swagathhomefoods.com</strong></p>
-                    </div>
-                </div>
-            </section>
-
             <!-- Admin Dashboard Tab (visible only when logged in) -->
-            <section id="admin-dashboard" class="tab-content" style="display:none;">
+            <section id="admin-dashboard" class="tab-content">
                 <div class="dashboard-container">
                     <div class="dashboard-header">
                         <h2>Feedback Dashboard</h2>
@@ -246,7 +214,7 @@
             </section>
 
             <!-- QR Code Tab (visible only when logged in) -->
-            <section id="qr-code-section" class="tab-content" style="display:none;">
+            <section id="qr-code-section" class="tab-content">
                 <div class="qr-container">
                     <div class="qr-header">
                         <h2>QR Code for Customer Access</h2>
@@ -276,7 +244,7 @@
             </section>
 
             <!-- Settings Tab (visible only when logged in) -->
-            <section id="settings-section" class="tab-content" style="display:none;">
+            <section id="settings-section" class="tab-content">
                 <div class="settings-container">
                     <div class="settings-header">
                         <h2>Admin Settings</h2>
@@ -330,6 +298,53 @@
             <div class="modal-content">
                 <button type="button" class="modal-close" id="modal-close-btn">&times;</button>
                 <img id="photo-modal-image" src="" alt="Photo preview" class="modal-image">
+            </div>
+        </div>
+
+        <!-- Admin Login Modal -->
+        <div id="login-modal" class="modal" style="display:none;">
+            <div class="modal-content login-modal-content">
+                <button type="button" class="modal-close" id="login-modal-close-btn">&times;</button>
+                <div class="admin-container">
+                    <div class="admin-header">
+                        <h2>Admin Access</h2>
+                        <p>Enter your credentials to access admin features</p>
+                    </div>
+
+                    <form id="login-form" class="login-form">
+                        <div class="form-section">
+                            <label for="admin-username" class="form-label">Username</label>
+                            <input 
+                                type="text" 
+                                id="admin-username" 
+                                class="form-input" 
+                                placeholder="Enter username"
+                                required
+                            >
+                            <span class="error-message" id="username-error"></span>
+                        </div>
+
+                        <div class="form-section">
+                            <label for="admin-password" class="form-label">Password</label>
+                            <input 
+                                type="password" 
+                                id="admin-password" 
+                                class="form-input" 
+                                placeholder="Enter password"
+                                required
+                            >
+                            <span class="error-message" id="password-error"></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                    </form>
+
+                    <div class="login-help">
+                        <p>If you don't have credentials, contact: <strong>contact@swagathhomefoods.com</strong></p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
