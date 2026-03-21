@@ -183,11 +183,16 @@ const AppState = {
             method: 'POST',
             body: formData
         });
+        const text = await response.text();
         if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error || 'Failed to submit feedback');
+            let message = 'Failed to submit feedback';
+            try {
+                const err = JSON.parse(text);
+                message = err.error || err.title || message;
+            } catch { }
+            throw new Error(message);
         }
-        const feedback = await response.json();
+        const feedback = JSON.parse(text);
         this.allFeedback.unshift(feedback);
         return feedback;
     },

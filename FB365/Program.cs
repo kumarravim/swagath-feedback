@@ -9,7 +9,8 @@ var dbPath = Path.Combine(builder.Environment.ContentRootPath, "..", "feedback.d
 builder.Services.AddDbContext<FeedbackDbContext>(options =>
     options.UseSqlite($"Data Source={Path.GetFullPath(dbPath)}"));
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options => options.SuppressModelStateInvalidFilter = true);
 
 var app = builder.Build();
 
