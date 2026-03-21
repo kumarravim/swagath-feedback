@@ -1,71 +1,54 @@
-using System;
-using System.Threading.Tasks;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
-namespace SwagathFeedback.Functions
+namespace SwagathFeedback.Api;
+
+public class SendNotification
 {
-    public static class SendNotification
+    private readonly ILogger<SendNotification> _logger;
+
+    public SendNotification(ILogger<SendNotification> logger)
     {
-        [FunctionName("SendNotification")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "send-notification")] HttpRequestData req,
-            ILogger log)
+        _logger = logger;
+    }
+
+    [Function("SendNotification")]
+    public async Task<IActionResult> Run(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "send-notification")] HttpRequest req)
+    {
+        _logger.LogInformation("Email notification function triggered");
+
+        try
         {
-            log.LogInformation("Email notification function triggered");
+            var body = await new StreamReader(req.Body).ReadToEndAsync();
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
 
-            try
+            var email = root.TryGetProperty("email", out var emailProp) ? emailProp.GetString() : null;
+
+            if (string.IsNullOrEmpty(email))
             {
-                string requestBody = await req.ReadAsStringAsync();
-                dynamic data = JsonConvert.DeserializeObject(requestBody);
-
-                string email = data?.email;
-                dynamic feedback = data?.feedback;
-
-                if (string.IsNullOrEmpty(email))
-                {
-                    return new BadRequestObjectResult(new { message = "Email address is required" });
-                }
-
-                // Build email content
-                string emailContent = BuildEmailContent(feedback);
-
-                // TODO: Integrate with SendGrid or Azure Communication Services
-                // For now, just log the email
-                log.LogInformation($"Email would be sent to: {email}");
-                log.LogInformation($"Email content: {emailContent}");
-
-                // Example: Using SendGrid (uncomment when configured)
-                // await SendEmailViaSendGrid(email, emailContent, log);
-
-                return new OkObjectResult(new { message = "Notification processed successfully" });
+                return new BadRequestObjectResult(new { message = "Email address is required" });
             }
-            catch (Exception ex)
-            {
-                log.LogError($"Error in SendNotification: {ex.Message}");
-                return new BadRequestObjectResult(new { message = ex.Message });
-            }
+
+            var productName = root.TryGetProperty("feedback", out var fb) &&
+                              fb.TryGetProperty("productName", out var pn) ? pn.GetString() : "N/A";
+            var category = fb.TryGetProperty("category", out var cat) ? cat.GetString() : "N/A";
+            var subcategory = fb.TryGetProperty("subcategory", out var sub) ? sub.GetString() : "N/A";
+            var comment = fb.TryGetProperty("comment", out var com) ? com.GetString() : "N/A";
+
+            _logger.LogInformation("Email would be sent to: {Email}", email);
+            _logger.LogInformation("Product: {Product}, Category: {Category}", productName, category);
+
+            return new OkObjectResult(new { message = "Notification processed successfully" });
         }
-
-        private static string BuildEmailContent(dynamic feedback)
+        catch (Exception ex)
         {
-            return $@"
-                <h2>New Customer Feedback Received</h2>
-                <p><strong>Product:</strong> {feedback.productName}</p>
-                <p><strong>Category:</strong> {feedback.category} - {feedback.subcategory}</p>
-                <p><strong>Feedback:</strong></p>
-                <p>{feedback.comment}</p>
-                <p><strong>Submitted on:</strong> {DateTime.Now:g}</p>
-                <p>Log in to your admin dashboard to view more details.</p>
-            ";
+            _logger.LogError(ex, "Error in SendNotification");
+            return new BadRequestObjectResult(new { message = ex.Message });
         }
-
-        // Example method for SendGrid integration (requires SendGrid bindings)
-        // private static async Task SendEmailViaSendGrid(string recipientEmail, string content, ILogger log)
-        // {
-        //     // Implementation would go here
-        // }
     }
 }
