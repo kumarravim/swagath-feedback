@@ -67,6 +67,17 @@ yarn.lock
 *.backup
 *~
 
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Playwright test artifacts
+.playwright-mcp/
+
+# Uploaded files
+uploads/
+
 # Logs
 logs
 *.log

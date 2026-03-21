@@ -766,6 +766,37 @@ body {
     object-fit: cover;
 }
 
+.feedback-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-border);
+    margin-top: var(--spacing-sm);
+}
+
+.btn-danger {
+    background-color: var(--color-accent);
+    color: white;
+    border: none;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    transition: opacity var(--transition-base);
+}
+
+.btn-danger:hover {
+    opacity: 0.85;
+}
+
+.btn-sm {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.8rem;
+}
+
 .empty-state {
     text-align: center;
     padding: var(--spacing-2xl);

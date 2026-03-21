@@ -137,9 +137,9 @@ const AppState = {
     photos: [],
     allFeedback: [],
 
-    init() {
+    async init() {
         this.loadAdminSession();
-        this.loadFeedback();
+        await this.loadFeedback();
     },
 
     loadAdminSession() {
@@ -166,38 +166,46 @@ const AppState = {
         localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEYS.ADMIN_LOGIN_TIME);
     },
 
-    loadFeedback() {
-        const stored = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEYS.FEEDBACK);
-        this.allFeedback = stored ? JSON.parse(stored) : [];
+    async loadFeedback() {
+        try {
+            const response = await fetch('/api/feedback');
+            if (response.ok) {
+                this.allFeedback = await response.json();
+            }
+        } catch (error) {
+            console.error('Failed to load feedback:', error);
+            this.allFeedback = [];
+        }
     },
 
-    addFeedback(feedback) {
-        feedback.id = Date.now().toString();
-        feedback.timestamp = new Date().toISOString();
-        this.allFeedback.push(feedback);
-        this.saveFeedback();
+    async addFeedback(formData) {
+        const response = await fetch('/api/feedback', {
+            method: 'POST',
+            body: formData
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Failed to submit feedback');
+        }
+        const feedback = await response.json();
+        this.allFeedback.unshift(feedback);
         return feedback;
     },
 
-    saveFeedback() {
-        localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.FEEDBACK, JSON.stringify(this.allFeedback));
-    },
+    async getFilteredFeedback() {
+        const params = new URLSearchParams();
+        if (this.currentFilter.startDate) params.set('startDate', this.currentFilter.startDate);
+        if (this.currentFilter.endDate) params.set('endDate', this.currentFilter.endDate);
 
-    getFilteredFeedback() {
-        let filtered = this.allFeedback;
-
-        if (this.currentFilter.startDate) {
-            const startDate = new Date(this.currentFilter.startDate);
-            filtered = filtered.filter(f => new Date(f.timestamp) >= startDate);
+        try {
+            const response = await fetch('/api/feedback?' + params.toString());
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch (error) {
+            console.error('Failed to filter feedback:', error);
         }
-
-        if (this.currentFilter.endDate) {
-            const endDate = new Date(this.currentFilter.endDate);
-            endDate.setHours(23, 59, 59, 999);
-            filtered = filtered.filter(f => new Date(f.timestamp) <= endDate);
-        }
-
-        return filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        return [];
     }
 };
 
@@ -240,6 +248,7 @@ function initializeDOM() {
         filterEndDate: document.getElementById('filter-end-date'),
         applyFilterBtn: document.getElementById('apply-filter-btn'),
         clearFilterBtn: document.getElementById('clear-filter-btn'),
+        exportBtn: document.getElementById('export-btn'),
         feedbackList: document.getElementById('feedback-list'),
         feedbackCount: document.getElementById('feedback-count'),
         qrCodeSection: document.getElementById('qr-code-section'),
@@ -261,12 +270,12 @@ function initializeDOM() {
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('DOM Content Loaded - Initializing app...');
     initializeDOM();
     console.log('DOM Elements initialized:', Elements);
     console.log('Admin tab button:', Elements.adminTabBtn);
-    AppState.init();
+    await AppState.init();
     initializeCategories();
     setupEventListeners();
     updateUIBasedOnAuth();
@@ -328,6 +337,7 @@ function setupEventListeners() {
     // Filtering
     Elements.applyFilterBtn.addEventListener('click', applyFilters);
     Elements.clearFilterBtn.addEventListener('click', clearFilters);
+    Elements.exportBtn.addEventListener('click', exportToExcel);
 
     // QR Code
     Elements.downloadQrBtn.addEventListener('click', downloadQRCode);
@@ -429,15 +439,13 @@ function handlePhotoSelection(e) {
 
     files.forEach(file => {
         if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                AppState.photos.push({
-                    data: event.target.result,
-                    name: file.name
-                });
-                renderPhotoPreviews();
-            };
-            reader.readAsDataURL(file);
+            const previewUrl = URL.createObjectURL(file);
+            AppState.photos.push({
+                file: file,
+                data: previewUrl,
+                name: file.name
+            });
+            renderPhotoPreviews();
         }
     });
 
@@ -505,28 +513,35 @@ async function handleFeedbackSubmit(e) {
         return;
     }
 
-    // Create feedback object
-    const feedback = {
-        category: Elements.categorySelect.value,
-        subcategory: Elements.subcategorySelect.value,
-        productName: Elements.productNameInput.value,
-        comment: Elements.commentInput.value,
-        photos: AppState.photos,
-        submittedBy: 'customer'
-    };
+    // Build FormData for multipart upload
+    const formData = new FormData();
+    formData.append('category', Elements.categorySelect.value);
+    formData.append('subcategory', Elements.subcategorySelect.value);
+    formData.append('productName', Elements.productNameInput.value);
+    formData.append('comment', Elements.commentInput.value);
 
-    // Add to state
-    AppState.addFeedback(feedback);
-
-    // Send email notification if enabled
-    const settings = getEmailSettings();
-    if (settings.enabled && settings.email) {
-        await sendEmailNotification(feedback, settings.email);
+    // Append photo files
+    for (const photo of AppState.photos) {
+        if (photo.file) {
+            formData.append('photos', photo.file);
+        }
     }
 
-    // Show success message
-    showSuccessMessage();
-    resetFormState();
+    try {
+        const feedback = await AppState.addFeedback(formData);
+
+        // Send email notification if enabled
+        const settings = getEmailSettings();
+        if (settings.enabled && settings.email) {
+            await sendEmailNotification(feedback, settings.email);
+        }
+
+        // Show success message
+        showSuccessMessage();
+        resetFormState();
+    } catch (error) {
+        alert('Failed to submit feedback: ' + error.message);
+    }
 }
 
 function validateFeedbackForm() {
@@ -653,7 +668,8 @@ function handleLogout() {
 // ============================================================================
 // ADMIN DASHBOARD
 // ============================================================================
-function displayAdminDashboard() {
+async function displayAdminDashboard() {
+    await AppState.loadFeedback();
     renderFeedbackList(AppState.allFeedback);
 }
 
@@ -694,11 +710,13 @@ function createFeedbackCard(feedback) {
     if (feedback.photos && feedback.photos.length > 0) {
         photosHTML = `
             <div class="feedback-photos">
-                ${feedback.photos.map((photo, idx) => `
-                    <div class="feedback-photo" onclick="showPhotoModal('${photo.data}')">
-                        <img src="${photo.data}" alt="Photo ${idx + 1}">
-                    </div>
-                `).join('')}
+                ${feedback.photos.map((photo, idx) => {
+                    const src = photo.url || photo.data;
+                    return `
+                    <div class="feedback-photo" onclick="showPhotoModal('${src}')">
+                        <img src="${src}" alt="Photo ${idx + 1}">
+                    </div>`;
+                }).join('')}
             </div>
         `;
     }
@@ -723,12 +741,20 @@ function createFeedbackCard(feedback) {
         </div>
 
         ${photosHTML}
+
+        <div class="feedback-actions">
+            <button type="button" class="btn btn-danger btn-sm delete-feedback-btn" data-id="${feedback.id}">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
     `;
+
+    card.querySelector('.delete-feedback-btn').addEventListener('click', () => deleteFeedback(feedback.id));
 
     return card;
 }
 
-function applyFilters() {
+async function applyFilters() {
     const startDate = Elements.filterStartDate.value;
     const endDate = Elements.filterEndDate.value;
 
@@ -740,16 +766,45 @@ function applyFilters() {
     AppState.currentFilter.startDate = startDate;
     AppState.currentFilter.endDate = endDate;
 
-    const filtered = AppState.getFilteredFeedback();
+    const filtered = await AppState.getFilteredFeedback();
     renderFeedbackList(filtered);
 }
 
-function clearFilters() {
+async function clearFilters() {
     AppState.currentFilter.startDate = null;
     AppState.currentFilter.endDate = null;
     Elements.filterStartDate.value = '';
     Elements.filterEndDate.value = '';
+    await AppState.loadFeedback();
     renderFeedbackList(AppState.allFeedback);
+}
+
+async function deleteFeedback(id) {
+    if (!confirm('Are you sure you want to delete this feedback?')) return;
+
+    try {
+        const response = await fetch(`/api/feedback/${id}`, { method: 'DELETE' });
+        if (response.ok) {
+            await displayAdminDashboard();
+        } else {
+            const err = await response.json();
+            alert('Failed to delete: ' + (err.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Failed to delete feedback: ' + error.message);
+    }
+}
+
+async function exportToExcel() {
+    const params = new URLSearchParams();
+    if (AppState.currentFilter.startDate) params.set('startDate', AppState.currentFilter.startDate);
+    if (AppState.currentFilter.endDate) params.set('endDate', AppState.currentFilter.endDate);
+
+    const url = '/api/feedback/export?' + params.toString();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '';
+    link.click();
 }
 
 // ============================================================================
