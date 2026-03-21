@@ -82,7 +82,7 @@ public class FeedbackController : ControllerBase
             if (photos.Count > 5)
                 return BadRequest(new { error = "Maximum 5 photos allowed." });
 
-            var uploadsDir = Path.Combine(_env.ContentRootPath, "..", "uploads");
+            var uploadsDir = Path.Combine(_env.ContentRootPath, "uploads");
             Directory.CreateDirectory(uploadsDir);
 
             foreach (var photo in photos)
@@ -135,8 +135,7 @@ public class FeedbackController : ControllerBase
         if (feedback == null)
             return NotFound(new { error = "Feedback not found." });
 
-        // Delete photo files from disk
-        var uploadsDir = Path.Combine(_env.ContentRootPath, "..", "uploads");
+        var uploadsDir = Path.Combine(_env.ContentRootPath, "uploads");
         foreach (var photo in feedback.Photos)
         {
             var filePath = Path.Combine(uploadsDir, photo.FilePath);
