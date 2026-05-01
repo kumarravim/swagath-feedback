@@ -55,13 +55,12 @@ public class FeedbackController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromForm] string category, [FromForm] string subcategory,
-        [FromForm] string productName, [FromForm] string comment, [FromForm] List<IFormFile>? photos)
+    public async Task<IActionResult> Create([FromForm] string? category, [FromForm] string? subcategory,
+        [FromForm] string? productName, [FromForm] string comment, [FromForm] List<IFormFile>? photos)
     {
-        if (string.IsNullOrWhiteSpace(category) || string.IsNullOrWhiteSpace(subcategory) ||
-            string.IsNullOrWhiteSpace(productName) || string.IsNullOrWhiteSpace(comment))
+        if (string.IsNullOrWhiteSpace(comment))
         {
-            return BadRequest(new { error = "All fields are required." });
+            return BadRequest(new { error = "Comment is required." });
         }
 
         if (comment.Length > 500)
@@ -69,9 +68,9 @@ public class FeedbackController : ControllerBase
 
         var feedback = new Feedback
         {
-            Category = category,
-            Subcategory = subcategory,
-            ProductName = productName,
+            Category = category ?? string.Empty,
+            Subcategory = subcategory ?? string.Empty,
+            ProductName = productName ?? string.Empty,
             Comment = comment,
             Timestamp = DateTime.UtcNow
         };

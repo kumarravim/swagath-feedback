@@ -551,9 +551,6 @@ async function handleFeedbackSubmit(e) {
 
 function validateFeedbackForm() {
     const errors = {
-        category: !Elements.categorySelect.value,
-        subcategory: !Elements.subcategorySelect.value,
-        'product-name': !Elements.productNameInput.value.trim(),
         comment: !Elements.commentInput.value.trim() || Elements.commentInput.value.length > 500
     };
 
@@ -732,10 +729,10 @@ function createFeedbackCard(feedback) {
                 <div class="feedback-title">${feedback.productName}</div>
                 <div class="feedback-timestamp">${formattedDate}</div>
             </div>
-            <div class="feedback-category">
-                <span class="badge">${feedback.category}</span>
-                <span class="badge">${feedback.subcategory}</span>
-            </div>
+            ${feedback.category || feedback.subcategory ? `<div class="feedback-category">
+                ${feedback.category ? `<span class="badge">${feedback.category}</span>` : ''}
+                ${feedback.subcategory ? `<span class="badge">${feedback.subcategory}</span>` : ''}
+            </div>` : ''}
         </div>
 
         <div class="feedback-details">
