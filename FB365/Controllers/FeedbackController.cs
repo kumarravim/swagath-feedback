@@ -170,13 +170,10 @@ public class FeedbackController : ControllerBase
         // Header row
         sheet.Cell(1, 1).Value = "ID";
         sheet.Cell(1, 2).Value = "Date";
-        sheet.Cell(1, 3).Value = "Category";
-        sheet.Cell(1, 4).Value = "Subcategory";
-        sheet.Cell(1, 5).Value = "Product Name";
-        sheet.Cell(1, 6).Value = "Comment";
-        sheet.Cell(1, 7).Value = "Photos Count";
+        sheet.Cell(1, 3).Value = "Comment";
+        sheet.Cell(1, 4).Value = "Photos Count";
 
-        var headerRange = sheet.Range(1, 1, 1, 7);
+        var headerRange = sheet.Range(1, 1, 1, 4);
         headerRange.Style.Font.Bold = true;
         headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#E8701A");
         headerRange.Style.Font.FontColor = XLColor.White;
@@ -188,11 +185,8 @@ public class FeedbackController : ControllerBase
             var row = i + 2;
             sheet.Cell(row, 1).Value = f.Id;
             sheet.Cell(row, 2).Value = f.Timestamp.ToString("yyyy-MM-dd HH:mm");
-            sheet.Cell(row, 3).Value = f.Category;
-            sheet.Cell(row, 4).Value = f.Subcategory;
-            sheet.Cell(row, 5).Value = f.ProductName;
-            sheet.Cell(row, 6).Value = f.Comment;
-            sheet.Cell(row, 7).Value = f.Photos.Count;
+            sheet.Cell(row, 3).Value = f.Comment;
+            sheet.Cell(row, 4).Value = f.Photos.Count;
         }
 
         sheet.Columns().AdjustToContents();
